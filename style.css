@@ -76,7 +76,6 @@ margin-bottom:20px;
     transition: all 0.3s ease;
     cursor: grab;
     position: relative;
-    
 }
 .card:hover{
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -100,7 +99,6 @@ margin-bottom:20px;
 .time{
     text-align: end;
     display: block;
-    font-style: italic;
-    font-size: 14px;
-    color: #222831;
+    font-size: 0.8em;
+    color: #666;
 }

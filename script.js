@@ -1,6 +1,8 @@
 let draggedCard=null;
 let draggedCardSourceColumn=null;
 let rightClickedCard = null;
+
+
 function addTask(columnId){
     const input = document.getElementById(`${columnId.toLowerCase()}-input`);
     const taskText = input.value.trim();
@@ -13,6 +15,8 @@ function addTask(columnId){
     document.getElementById(`${columnId.toLowerCase()}-tasks`).appendChild(taskElement);
     input.value="";
     updateTaskCount(columnId.toLowerCase());
+    saveToLocalStorage(columnId, taskText, testDate);
+
 }
 
 function createTaskElement(taskText, testDate){
@@ -51,6 +55,7 @@ function dragEnd(){
     }
     draggedCard = null;
     draggedCardSourceColumn = null;
+    updateLocalStorage();
 }
 const columns = document.querySelectorAll(".column .tasks" );
 columns.forEach((column) => {
@@ -62,8 +67,34 @@ columns.forEach((column) => {
 
 function dragOver(event){
     event.preventDefault();
-    this.appendChild(draggedCard);
+    const afterElements = getDragAfterElement(this, event.pageY);
+    if (afterElements===null){
+        this.appendChild(draggedCard);
+    }else{
+        this.insertBefore(draggedCard, afterElements);
+    }
 }
+
+function getDragAfterElement(container, y){
+    const draggbleElements = [...container.querySelectorAll(".card:not(.dragging)")];
+    let closestElementUnderMouse = {offset: Number.NEGATIVE_INFINITY};
+    
+    const result = draggbleElements.reduce((closestElementUnderMouse, currentTask)=>{
+        const box = currentTask.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closestElementUnderMouse.offset){
+            return {offset: offset, element: currentTask};
+        }else{
+            return closestElementUnderMouse;
+        }
+    }, closestElementUnderMouse);
+    
+    return result.element;
+}
+
+
+
 
 const contextMenuElement = document.querySelector(".context-menu");
 
@@ -78,14 +109,19 @@ document.addEventListener("click",()=>{
 })
 
 function editTask(){
-    const newTaskText =prompt("Edit task-", rightClickedCard.textContent);
+    const oldSpan = rightClickedCard.querySelector("span");
+    const newTaskText = prompt("Edit task:", oldSpan.textContent);
     if (rightClickedCard!==null){
-        rightClickedCard.textContent=newTaskText;
-        if (newTaskText!==""){
-            rightClickedCard.textContent= newTaskText;
-        }
-    }
 
+        if (newTaskText!==""){
+            
+            oldSpan.textContent = newTaskText;
+
+       }
+        rightClickedCard=null;
+
+       updateLocalStorage();
+    }
 
 }
 function deleteTask(){
@@ -96,6 +132,7 @@ function deleteTask(){
         updateTaskCount(columnId);
 
     }
+    updateLocalStorage();
 }
 function updateTaskCount(columnId){
     const count = document.querySelectorAll(`#${columnId}-tasks .card`).length;
@@ -103,6 +140,34 @@ function updateTaskCount(columnId){
 
 
 }
+function saveToLocalStorage(columnId, taskText, testDate){
+    const task =JSON.parse(localStorage.getItem(columnId))||[];
+    task.push({test: taskText, Date: testDate});
+    localStorage.setItem(columnId, JSON.stringify(task));
+}
+function loadFromLocalStorage(){
+    ["todo", "doing", "done"].forEach((columnId)=>{
+        const tasks = JSON.parse(localStorage.getItem(columnId))||[];
+        tasks.forEach(({test, Date})=>{
+            const taskElement =createTaskElement(test, Date);
+            document.getElementById(`${columnId}-tasks`).appendChild(taskElement);
+            updateTaskCount(columnId);
+        })
+    })
+}
+function updateLocalStorage(){
+    ["todo", "doing", "done"].forEach((columnId)=>{
+        const tasks = [];
+
+    document.querySelectorAll(`#${columnId}-tasks .card`).forEach((card)=>{
+        const taskText = card.querySelector("span").textContent;
+        const testDate = card.querySelector("small").textContent;
+        tasks.push({test: taskText,Date: testDate});
+    });
+    localStorage.setItem(columnId, JSON.stringify(tasks));
+    });
+}
+loadFromLocalStorage();
 
 
 
